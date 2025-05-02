@@ -1,0 +1,16 @@
+# Ignore Python virtual environments
+.venv/
+env/
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+
+# Ignore data files
+*.csv
+*.xlsx
+*.png
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
