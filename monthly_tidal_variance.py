@@ -148,7 +148,8 @@ def plot_lowest_tide(monthly_avg_window):
     Plot the lowest tide per month within the specified time window.
 
     Args:
-        monthly_avg_window (pd.DataFrame): DataFrame containing monthly average low tides within the time window.
+        monthly_avg_window (pd.DataFrame): DataFrame containing monthly average
+        low tides within the time window.
     """
     plt.figure(figsize=(10, 6))
     plt.bar(monthly_avg_window["month_name"], monthly_avg_window["v"], color="skyblue")
@@ -246,16 +247,11 @@ def main():
     )
     args = parser.parse_args()
 
-    # Define the analysis period
-    # TODO: Update the start and end years from data when pulling from csv
+    # Define the analysis period statically
     start_year = 2014
     end_year = 2024
     start_date = datetime(start_year, 1, 1)
     end_date = datetime(end_year, 12, 31)
-
-    print(
-        f"Analysis period: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-    )
 
     if args.source == "csv":
         try:
@@ -264,6 +260,18 @@ def main():
                 args.csv_path, parse_dates=["t"]
             )  # Adjust 't' if the date column has a different name
             print("Data successfully loaded from CSV.")
+
+            # Set start_year and end_year based on the CSV data
+            start_date = low_tides_df["t"].min()
+            end_date = low_tides_df["t"].max()
+            start_year = start_date.year
+            end_year = end_date.year
+
+            print(
+                f"Analysis period: {start_date.strftime('%Y-%m-%d')} "
+                f"to {end_date.strftime('%Y-%m-%d')}"
+            )
+    
         except FileNotFoundError:
             print(f"Error: The file {args.csv_path} does not exist.")
             return
@@ -272,6 +280,9 @@ def main():
             return
     else:
         try:
+            print(
+                f"Analysis period: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
+            )
 
             # Fetch tidal data
             print("Fetching tidal data...")
