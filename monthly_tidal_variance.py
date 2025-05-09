@@ -217,6 +217,64 @@ def plot_monthly_avg_lowest_tide(
     plt.savefig("average_lowest_tide_per_month.png")  # Saves the plot as an image file
     plt.show()
 
+def calculate_monthly_avg_lowest_tide_by_year(df):
+    """
+    Calculate the average lowest tide each month per year between 9 AM and 4 PM.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing low tide data with 't' and 'v' columns.
+
+    Returns:
+        pd.DataFrame: DataFrame with 'year', 'month', 'average_lowest_tide', and 'month_name' columns.
+    """
+    # Filter tides between 9 AM and 4 PM
+    df_filtered = df[(df["t"].dt.hour >= 9) & (df["t"].dt.hour <= 16)].copy()
+
+    # Extract year and month from datetime
+    df_filtered["year"] = df_filtered["t"].dt.year
+    df_filtered["month"] = df_filtered["t"].dt.month
+
+    # Calculate monthly average lowest tide per year
+    monthly_avg_lowest_yearly = df_filtered.groupby(["year", "month"])["v"].mean().reset_index()
+
+    # Add month names for readability
+    monthly_avg_lowest_yearly["month_name"] = monthly_avg_lowest_yearly["month"].apply(
+        lambda x: datetime(1900, x, 1).strftime("%B")
+    )
+
+    # Rename columns for clarity
+    monthly_avg_lowest_yearly.rename(columns={"v": "average_lowest_tide"}, inplace=True)
+
+    return monthly_avg_lowest_yearly
+
+def plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly, title="Average Monthly Lowest Tide by Year (9AM - 4PM)"):
+    """
+    Plot the average lowest tide each month per year.
+
+    Args:
+        monthly_avg_lowest_yearly (pd.DataFrame): DataFrame containing monthly average lowest tides per year.
+        title (str): Title of the plot.
+    """
+    plt.figure(figsize=(12, 8))
+    
+    # Get unique years
+    years = monthly_avg_lowest_yearly['year'].unique()
+    
+    for year in years:
+        yearly_data = monthly_avg_lowest_yearly[monthly_avg_lowest_yearly['year'] == year]
+        plt.plot(yearly_data['month_name'], yearly_data['average_lowest_tide'], marker='o', label=str(year))
+    
+    plt.title(title)
+    plt.xlabel("Month")
+    plt.ylabel("Average Lowest Tide Level (m)")
+    plt.legend(title="Year")
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("average_lowest_tide_by_year.png")  # Saves the plot as an image file
+    plt.show()
+
+
 
 def export_to_csv(df, filename):
     """
@@ -350,7 +408,7 @@ def main():
                 + str(end_year),
             )
 
-        # New Functionality: Calculate and Plot Average Lowest Tide Each Month
+        # Calculate and Plot Average Lowest Tide Each Month
         print("Calculating average lowest tide each month across all years...")
         monthly_avg_lowest = calculate_monthly_avg_lowest_tide(low_tides_df)
 
@@ -359,6 +417,11 @@ def main():
 
         print("Plotting average lowest tide each month...")
         plot_monthly_avg_lowest_tide(monthly_avg_lowest)
+
+        # Calculate and Plot Average Lowest Tide Each Month per Year
+        print("Calculating and plotting average lowest tide each month per year...")
+        monthly_avg_lowest_yearly = calculate_monthly_avg_lowest_tide_by_year(low_tides_df)
+        plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly)
 
     except FileNotFoundError:
         print("Error: The file 'detailed_low_tide_data.csv' does not exist.")
