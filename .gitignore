@@ -14,3 +14,6 @@ __pycache__/
 # Ignore IDE-specific files
 .vscode/
 .idea/
+
+# Ignore api_token.py - is meant to hold API key
+api_token.py

@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime
 
+import os
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,9 +12,21 @@ NOAA_API_URL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
 # Station ID for Pillar Point Harbor
 STATION_ID = "9414131"
 
-# NOAA API Token (if required for observed data)
-API_TOKEN = "YOUR_NOAA_API_TOKEN"  # Replace with your actual token
 
+# Attempt to import API_TOKEN from api_token.py
+try:
+    from api_token import API_TOKEN
+except (ImportError, AttributeError):
+    API_TOKEN = None
+    print("Warning: API_TOKEN not found. 'water_level' data will not be available.")
+
+if API_TOKEN is None:
+    if not os.path.exists("api_token.py"):
+        with open("api_token.py", "w", encoding="utf-8") as f:
+            f.write('# api_token.py\nAPI_TOKEN = "YOUR_NOAA_API_TOKEN"  # Replace with your actual token\n')
+        print("Created 'api_token.py'. Please add your API_TOKEN to this file.")
+    else:
+        print("'api_token.py' exists but API_TOKEN is not defined. Please add your API_TOKEN.")
 
 def fetch_tidal_data(station_id, start_date, end_date, product="predictions"):
     """
@@ -42,11 +55,27 @@ def fetch_tidal_data(station_id, start_date, end_date, product="predictions"):
     }
 
     if product == "water_level":
-        params["token"] = API_TOKEN  # Include token for observed data
+        if API_TOKEN:
+            if API_TOKEN == "YOUR_NOAA_API_TOKEN":
+                print("Warning: API_TOKEN not defined. Should be set in api_token.py. ",
+                "Cannot fetch 'water_level' data.")
+                return pd.DataFrame()  # Return an empty DataFrame or handle as needed
+            else:
+                params["token"] = API_TOKEN  # Use the imported token
+        else:
+            print("Error: API_TOKEN is not available. Cannot fetch 'water_level' data.")
+            return pd.DataFrame()  # Return an empty DataFrame or handle as needed
 
-    response = requests.get(NOAA_API_URL, params=params, timeout=15)
-    response.raise_for_status()
-    data = response.json()
+    try:
+        response = requests.get(NOAA_API_URL, params=params, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"HTTP Request failed: {e}")
+        return pd.DataFrame()
+    except ValueError as ve:
+        print(f"JSON decoding failed: {ve}")
+        return pd.DataFrame()
 
     key = "water_level" if product == "water_level" else "predictions"
     if key not in data:
@@ -96,7 +125,7 @@ def analyze_monthly_variance(low_tides_df):
     return monthly_avg
 
 
-def analyze_variance_time_window(low_tides_df, start_hour=9, end_hour=16):
+def analyze_variance_time_window(low_tides_df, start_hour=10, end_hour=16):
     """
     Analyze monthly variance of low tides between specified hours.
 
@@ -307,7 +336,7 @@ def main():
 
     # Define the analysis period statically
     start_year = 2014
-    end_year = 2024
+    end_year = 2018
     start_date = datetime(start_year, 1, 1)
     end_date = datetime(end_year, 12, 31)
 
@@ -387,7 +416,7 @@ def main():
             + str(end_year),
         )
 
-        # Analyze variance between 9AM and 4PM
+        # Analyze day time variance
         print("Analyzing variance between 9AM and 4PM...")
         monthly_avg_window = analyze_variance_time_window(
             low_tides_df, start_hour=9, end_hour=16
