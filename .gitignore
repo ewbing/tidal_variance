@@ -11,6 +11,10 @@ __pycache__/
 *.xlsx
 *.png
 
+# Ignore certain dirs
+old/
+out/
+
 # Ignore IDE-specific files
 .vscode/
 .idea/

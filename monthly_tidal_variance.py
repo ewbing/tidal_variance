@@ -11,7 +11,9 @@ NOAA_API_URL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
 
 # Station ID for Pillar Point Harbor
 STATION_ID = "9414131"
-
+# Define day start and end hours
+DAY_START_HOUR=10
+DAY_END_HOUR=16
 
 # Attempt to import API_TOKEN from api_token.py
 try:
@@ -23,7 +25,8 @@ except (ImportError, AttributeError):
 if API_TOKEN is None:
     if not os.path.exists("api_token.py"):
         with open("api_token.py", "w", encoding="utf-8") as f:
-            f.write('# api_token.py\nAPI_TOKEN = "YOUR_NOAA_API_TOKEN"  # Replace with your actual token\n')
+            f.write('''# api_token.py
+                    API_TOKEN = "YOUR_NOAA_API_TOKEN"  # Replace with your actual token\n''')
         print("Created 'api_token.py'. Please add your API_TOKEN to this file.")
     else:
         print("'api_token.py' exists but API_TOKEN is not defined. Please add your API_TOKEN.")
@@ -107,9 +110,10 @@ def identify_low_tides(df):
     return pd.DataFrame(low_tides)
 
 
-def analyze_monthly_variance(low_tides_df):
+def analyze_monthly_average(low_tides_df):
     """
     Analyze monthly variance in low tide data.
+    Returns the average lowest tide per month - regardless of time
 
     Args:
         low_tides_df (pd.DataFrame): DataFrame containing low tides.
@@ -125,9 +129,10 @@ def analyze_monthly_variance(low_tides_df):
     return monthly_avg
 
 
-def analyze_variance_time_window(low_tides_df, start_hour=10, end_hour=16):
+def analyze_daytime_monthly_average(low_tides_df, start_hour=10, end_hour=16):
     """
     Analyze monthly variance of low tides between specified hours.
+    Returns the daily average lowest tide per month
 
     Args:
         low_tides_df (pd.DataFrame): DataFrame containing low tides.
@@ -157,7 +162,7 @@ def analyze_variance_time_window(low_tides_df, start_hour=10, end_hour=16):
     return monthly_avg_window
 
 
-def plot_monthly_variance(
+def plot_monthly_average(
     monthly_avg, title="Average Mean Low Tide per Month at Pillar Point Harbor"
 ):
     """Plot the monthly variance of mean low tides."""
@@ -172,28 +177,9 @@ def plot_monthly_variance(
     plt.show()
 
 
-def plot_lowest_tide(monthly_avg_window):
+def calculate_monthly_avg_lowest_daytime_tide(df):
     """
-    Plot the lowest tide per month within the specified time window.
-
-    Args:
-        monthly_avg_window (pd.DataFrame): DataFrame containing monthly average
-        low tides within the time window.
-    """
-    plt.figure(figsize=(10, 6))
-    plt.bar(monthly_avg_window["month_name"], monthly_avg_window["v"], color="skyblue")
-    plt.title("Lowest Tide per Month (9AM - 4PM)")
-    plt.xlabel("Month")
-    plt.ylabel("Lowest Tide Level (m)")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.savefig("lowest_tide_per_month.png")  # Saves the plot as an image file
-    plt.show()
-
-
-def calculate_monthly_avg_lowest_tide(df):
-    """
-    Calculate the average lowest tide each month across all years between 9 AM and 4 PM.
+    Calculate the average lowest daytime tide each month across all years.
 
     Args:
         df (pd.DataFrame): DataFrame containing low tide data with 't' and 'v' columns.
@@ -201,8 +187,8 @@ def calculate_monthly_avg_lowest_tide(df):
     Returns:
         pd.DataFrame: DataFrame with 'month', 'average_lowest_tide', and 'month_name' columns.
     """
-    # Filter tides between 9 AM and 4 PM
-    df_filtered = df[(df["t"].dt.hour >= 9) & (df["t"].dt.hour <= 16)].copy()
+    # Filter tides to daytime
+    df_filtered = df[(df["t"].dt.hour >= DAY_START_HOUR) & (df["t"].dt.hour <= DAY_END_HOUR)].copy()
 
     # Extract month from datetime
     df_filtered["month"] = df_filtered["t"].dt.month
@@ -221,8 +207,8 @@ def calculate_monthly_avg_lowest_tide(df):
     return monthly_avg_lowest
 
 
-def plot_monthly_avg_lowest_tide(
-    monthly_avg_lowest, title="Average of Monthly Lowest Tide in day time"
+def plot_monthly_avg_lowest_daytime_tide(
+    monthly_avg_lowest, title="Average of Monthly Lowest Daytime Tide"
 ):
     """
     Plot the average lowest tide each month.
@@ -246,9 +232,9 @@ def plot_monthly_avg_lowest_tide(
     plt.savefig("average_lowest_tide_per_month.png")  # Saves the plot as an image file
     plt.show()
 
-def calculate_monthly_avg_lowest_tide_by_year(df):
+def calculate_monthly_avg_lowest_day_tide_by_year(df):
     """
-    Calculate the average lowest tide each month per year between 9 AM and 4 PM.
+    Calculate the average lowest daytime tide each month per year.
 
     Args:
         df (pd.DataFrame): DataFrame containing low tide data with 't' and 'v' columns.
@@ -257,7 +243,7 @@ def calculate_monthly_avg_lowest_tide_by_year(df):
         pd.DataFrame: DataFrame with 'year', 'month', 'average_lowest_tide', and 'month_name' columns.
     """
     # Filter tides between 9 AM and 4 PM
-    df_filtered = df[(df["t"].dt.hour >= 9) & (df["t"].dt.hour <= 16)].copy()
+    df_filtered = df[(df["t"].dt.hour >= DAY_START_HOUR) & (df["t"].dt.hour <= DAY_END_HOUR)].copy()
 
     # Extract year and month from datetime
     df_filtered["year"] = df_filtered["t"].dt.year
@@ -276,7 +262,7 @@ def calculate_monthly_avg_lowest_tide_by_year(df):
 
     return monthly_avg_lowest_yearly
 
-def plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly, title="Average Monthly Lowest Tide by Year (9AM - 4PM)"):
+def plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly, title="Average Monthly Lowest Day Tide by Year"):
     """
     Plot the average lowest tide each month per year.
 
@@ -300,7 +286,7 @@ def plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly, title="Avera
     plt.xticks(rotation=45)
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("average_lowest_tide_by_year.png")  # Saves the plot as an image file
+    plt.savefig("average_lowest_day_tide_by_year.png")  # Saves the plot as an image file
     plt.show()
 
 
@@ -334,12 +320,13 @@ def main():
     )
     args = parser.parse_args()
 
-    # Define the analysis period statically
-    start_year = 2014
-    end_year = 2018
+    # Define the analysis period statically (defaults used if source is api)
+    start_year = 2019
+    end_year = 2024
     start_date = datetime(start_year, 1, 1)
     end_date = datetime(end_year, 12, 31)
 
+    # Bring in data
     if args.source == "csv":
         try:
             print(f"Reading detailed low tide data from {args.csv_path}...")
@@ -397,18 +384,20 @@ def main():
             print(f"An unexpected error occurred: {e}")
             return
 
+
+    #Analyze data
     try:
         # Analyze monthly variance
-        print("Analyzing monthly variance...")
-        monthly_avg = analyze_monthly_variance(low_tides_df)
+        print("Cacluate average low tide per month...")
+        monthly_avg = analyze_monthly_average(low_tides_df)
 
         # Export analyzed data to CSV
         print("Exporting data to CSV...")
-        export_to_csv(monthly_avg, "monthly_low_tide_variance.csv")
+        export_to_csv(monthly_avg, "monthly_low_tide_average.csv")
 
         # Plot the overall monthly variance
         print("Plotting overall monthly variance...")
-        plot_monthly_variance(
+        plot_monthly_average(
             monthly_avg,
             title="Average Low Tide per Month at Pillar Point Harbor between "
             + str(start_year)
@@ -417,21 +406,21 @@ def main():
         )
 
         # Analyze day time variance
-        print("Analyzing variance between 9AM and 4PM...")
-        monthly_avg_window = analyze_variance_time_window(
-            low_tides_df, start_hour=9, end_hour=16
+        print("Cacluate average daytime low tide per month...")
+        monthly_avg_window = analyze_daytime_monthly_average(
+            low_tides_df, DAY_START_HOUR, DAY_END_HOUR
         )
 
         if not monthly_avg_window.empty:
             # Export time window variance data to CSV
             print("Exporting time window variance data to CSV...")
-            export_to_csv(monthly_avg_window, "monthly_low_tide_variance_9AM_4PM.csv")
+            export_to_csv(monthly_avg_window, "monthly_daytime_low_tide_average.csv")
 
             # Plot the time window variance
             print("Plotting time window variance...")
-            plot_monthly_variance(
+            plot_monthly_average(
                 monthly_avg_window,
-                title="Average Low Tide per Month (9AM - 4PM) at Pillar Point Harbor between "
+                title="Average Daytime Low Tide per Month at Pillar Point Harbor between "
                 + str(start_year)
                 + " and "
                 + str(end_year),
@@ -439,17 +428,17 @@ def main():
 
         # Calculate and Plot Average Lowest Tide Each Month
         print("Calculating average lowest tide each month across all years...")
-        monthly_avg_lowest = calculate_monthly_avg_lowest_tide(low_tides_df)
+        monthly_avg_lowest = calculate_monthly_avg_lowest_daytime_tide(low_tides_df)
 
         print("Exporting average lowest tide data to CSV...")
-        export_to_csv(monthly_avg_lowest, "average_lowest_tide_per_month.csv")
+        export_to_csv(monthly_avg_lowest, "average_lowest_daytime_tide_per_month.csv")
 
         print("Plotting average lowest tide each month...")
-        plot_monthly_avg_lowest_tide(monthly_avg_lowest)
+        plot_monthly_avg_lowest_daytime_tide(monthly_avg_lowest)
 
         # Calculate and Plot Average Lowest Tide Each Month per Year
         print("Calculating and plotting average lowest tide each month per year...")
-        monthly_avg_lowest_yearly = calculate_monthly_avg_lowest_tide_by_year(low_tides_df)
+        monthly_avg_lowest_yearly = calculate_monthly_avg_lowest_day_tide_by_year(low_tides_df)
         plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly)
 
     except FileNotFoundError:
