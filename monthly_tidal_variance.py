@@ -1,4 +1,5 @@
 import argparse
+import calendar
 from datetime import datetime
 
 import os
@@ -14,6 +15,9 @@ STATION_ID = "9414131"
 # Define day start and end hours
 DAY_START_HOUR=10
 DAY_END_HOUR=16
+
+# Highest tidepooling tide
+TIDEPOOL_TIDE=.1
 
 # Attempt to import API_TOKEN from api_token.py
 try:
@@ -51,9 +55,9 @@ def fetch_tidal_data(station_id, start_date, end_date, product="predictions"):
         "end_date": end_date.strftime("%Y%m%d"),
         "datum": "MLLW",
         "station": station_id,
-        "time_zone": "GMT",
-        "units": "metric",
-        "interval": "h",
+        "time_zone": "lst_ldt",
+        "units": "english",
+        "interval": "hilo",
         "format": "json",
     }
 
@@ -95,12 +99,16 @@ def identify_low_tides(df):
     Identify low tides by finding local minima in the tidal data.
 
     Args:
-        df (pd.DataFrame): Tidal data sorted by time.
+        df (pd.DataFrame): Tidal data with 't' (datetime) and 'v' (tide level) columns
+                           as well as 'type' (H for high tide, L for low tide)
 
     Returns:
         pd.DataFrame: DataFrame containing only low tides.
     """
-    df = df.sort_values("t").reset_index(drop=True)
+    # df = df.sort_values("t").reset_index(drop=True)
+
+    # Filter out high tides and sort by time
+    df = df[df['type'] != 'H'].sort_values("t").reset_index(drop=True)
     low_tides = []
 
     for i in range(1, len(df) - 1):
@@ -289,7 +297,124 @@ def plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly, title="Avera
     plt.savefig("average_lowest_day_tide_by_year.png")  # Saves the plot as an image file
     plt.show()
 
+def calculate_monthly_avg_count_below_tidepool_tide_daytime(df, output_filename="monthly_avg_count_below_tidepool_daytime.csv"):
+    """
+    Calculate the average count of tides below TIDEPOOL_TIDE during daytime for each month and export to a CSV file.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing tidal data with 't' (datetime) and 'v' (tide level) columns.
+        output_filename (str): Name of the output CSV file.
+    
+    Returns:
+        pd.DataFrame: DataFrame with 'month', 'average_count_below_tidepool_tide_daytime', and 'month_name' columns.
+    """
+    # Ensure the datetime column is in datetime format
+    df["t"] = pd.to_datetime(df["t"])
+    
+    # Extract month, year, and hour from datetime
+    df["month"] = df["t"].dt.month
+    df["year"] = df["t"].dt.year
+    df["hour"] = df["t"].dt.hour
+    
+    # Filter tides below TIDEPOOL_TIDE
+    df_below = df[df["v"] < TIDEPOOL_TIDE].copy()
+    
+    # Further filter to include only tides during daytime hours
+    df_below_daytime = df_below[
+        (df_below["hour"] >= DAY_START_HOUR) & (df_below["hour"] < DAY_END_HOUR)
+    ]
+    
+    # Count the number of tides below TIDEPOOL_TIDE during daytime per month per year
+    monthly_counts_daytime = df_below_daytime.groupby(["year", "month"]).size().reset_index(name="count_below_tidepool_tide_daytime")
+    
+    # Calculate the average count per month across all years
+    average_monthly_counts_daytime = monthly_counts_daytime.groupby("month")["count_below_tidepool_tide_daytime"].mean().reset_index()
+    
+    # Add month names for readability
+    average_monthly_counts_daytime["month_name"] = average_monthly_counts_daytime["month"].apply(
+        lambda x: datetime(1900, x, 1).strftime("%B")
+    )
+    
+    # Rename columns for clarity
+    average_monthly_counts_daytime.rename(columns={"count_below_tidepool_tide_daytime": "average_count_below_tidepool_tide_daytime"}, inplace=True)
+    
+    # Export to CSV
+    export_to_csv(average_monthly_counts_daytime, output_filename)  # Uses `export_to_csv` from `monthly_tidal_variance.py`
+    
+    return average_monthly_counts_daytime
 
+def plot_monthly_avg_count_below_tidepool_daytime_histogram(average_monthly_counts_daytime, title="Average Monthly Count of Tidepool Tides During Daytime"):
+    """
+    Plot a histogram of the average monthly count of tides below TIDEPOOL_TIDE during daytime.
+    
+    Args:
+        average_monthly_counts_daytime (pd.DataFrame): DataFrame containing average monthly counts of tides below TIDEPOOL_TIDE during daytime.
+        title (str): Title of the histogram.
+    """
+    
+    # Plot the histogram
+    plt.figure(figsize=(10, 6))
+    plt.bar(
+        average_monthly_counts_daytime["month_name"],
+        average_monthly_counts_daytime["average_count_below_tidepool_tide_daytime"],
+        color="orchid",
+    )
+    plt.title(title)
+    plt.xlabel("Month")
+    plt.ylabel("Average Count of Tides Below " + str(TIDEPOOL_TIDE) + " During Daytime")
+    plt.xticks(rotation=45)
+    plt.grid(axis="y")
+    plt.tight_layout()
+    plt.savefig("average_count_below_tidepool_tide_daytime_histogram.png")  # Saves the plot as an image file
+    plt.show()
+
+def plot_monthly_avg_count_below_tidepool_daytime_histogram_new(average_monthly_counts_daytime, title="Average Monthly Count of Tidepool Tides During Daytime"):
+    """
+    Plot a histogram of the average monthly count of tides below TIDEPOOL_TIDE during daytime.
+    
+    Args:
+        average_monthly_counts_daytime (pd.DataFrame): DataFrame containing average monthly counts of tides below TIDEPOOL_TIDE during daytime.
+        title (str): Title of the histogram.
+    """
+    # Create a DataFrame with all months
+    all_months = pd.DataFrame({
+        'month': range(1, 13),
+        'month_name': [calendar.month_name[i] for i in range(1, 13)]
+    })
+    
+    # Ensure 'month' is of integer type in both DataFrames
+    average_monthly_counts_daytime['month'] = average_monthly_counts_daytime['month'].astype(int)
+    all_months['month'] = all_months['month'].astype(int)
+    
+    # Merge with the existing data and fill missing months with 0
+    merged_df = all_months.merge(
+        average_monthly_counts_daytime, 
+        on='month', 
+        how='left'
+    ).fillna({'average_count_below_tidepool_tide_daytime': 0})
+    
+    # Debugging: Print columns and first few rows
+    print("Columns in merged_df:", merged_df.columns)
+    print(merged_df.head())
+    
+    # Proceed with plotting if 'month_name' exists
+    if 'month_name' not in merged_df.columns:
+        raise KeyError("'month_name' column is missing from the merged DataFrame.")
+    
+    plt.figure(figsize=(10, 6))
+    plt.bar(
+        merged_df["month_name"],
+        merged_df["average_count_below_tidepool_tide_daytime"],
+        color="orchid",
+    )
+    plt.title(title)
+    plt.xlabel("Month")
+    plt.ylabel("Average Count of Tides Below " + str(TIDEPOOL_TIDE) + " During Daytime")
+    plt.xticks(rotation=45)
+    plt.grid(axis="y")
+    plt.tight_layout()
+    plt.savefig("average_count_below_tidepool_tide_daytime_histogram.png")  # Saves the plot as an image file
+    plt.show()
 
 def export_to_csv(df, filename):
     """
@@ -315,7 +440,7 @@ def main():
     parser.add_argument(
         "--csv_path",
         type=str,
-        default="detailed_low_tide_data.csv",
+        default="raw_tide_data.csv",
         help="Path to the detailed low tide CSV file.",
     )
     args = parser.parse_args()
@@ -326,18 +451,20 @@ def main():
     start_date = datetime(start_year, 1, 1)
     end_date = datetime(end_year, 12, 31)
 
+    tidal_df = None
+
     # Bring in data
     if args.source == "csv":
         try:
-            print(f"Reading detailed low tide data from {args.csv_path}...")
-            low_tides_df = pd.read_csv(
+            print(f"Reading detailed tidal data from {args.csv_path}...")
+            tidal_df = pd.read_csv(
                 args.csv_path, parse_dates=["t"]
             )  # Adjust 't' if the date column has a different name
             print("Data successfully loaded from CSV.")
 
             # Set start_year and end_year based on the CSV data
-            start_date = low_tides_df["t"].min()
-            end_date = low_tides_df["t"].max()
+            start_date = tidal_df["t"].min()
+            end_date = tidal_df["t"].max()
             start_year = start_date.year
             end_year = end_date.year
 
@@ -364,17 +491,9 @@ def main():
                 STATION_ID, start_date, end_date, product="predictions"
             )
 
-            # Identify low tides
-            print("Identifying low tides...")
-            low_tides_df = identify_low_tides(tidal_df)
-
-            if low_tides_df.empty:
-                print("No low tides identified in the data.")
-                return
-
-            # Export detailed low tide data to CSV
-            print("Exporting detailed low tide data to CSV...")
-            export_to_csv(low_tides_df, "detailed_low_tide_data.csv")
+            # Export raw tide data to CSV
+            print("Exporting detailed raw tide data to CSV...")
+            export_to_csv(tidal_df, "raw_tide_data.csv")
 
         except requests.exceptions.RequestException as e:
             print(f"An error occurred while fetching data: {e}")
@@ -387,6 +506,20 @@ def main():
 
     #Analyze data
     try:
+
+        # Identify low tides
+        print("Identifying low tides...")
+        low_tides_df = identify_low_tides(tidal_df)
+
+        if low_tides_df.empty:
+            print("No low tides identified in the data.")
+            return
+
+        # Export detailed low tide data to CSV
+        print("Exporting detailed low tide data to CSV...")
+        export_to_csv(low_tides_df, "detailed_low_tide_data" + 
+                        "_" + str(start_year) + "_" + str(end_year) + ".csv")
+
         # Analyze monthly variance
         print("Cacluate average low tide per month...")
         monthly_avg = analyze_monthly_average(low_tides_df)
@@ -441,10 +574,14 @@ def main():
         monthly_avg_lowest_yearly = calculate_monthly_avg_lowest_day_tide_by_year(low_tides_df)
         plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly)
 
-    except FileNotFoundError:
-        print("Error: The file 'detailed_low_tide_data.csv' does not exist.")
+        # Calculate and export average count of tides below TIDEPOOL_TIDE during daytime
+        average_monthly_counts_daytime = calculate_monthly_avg_count_below_tidepool_tide_daytime(low_tides_df)
+        
+        # Plot the histogram
+        plot_monthly_avg_count_below_tidepool_daytime_histogram(average_monthly_counts_daytime)
+
     except pd.errors.ParserError:
-        print("Error: Could not parse the CSV file 'detailed_low_tide_data.csv'.")
+        print("Error: Could not parse the CSV file.")
     except ValueError as e:
         print(f"An error occurred with data processing: {e}")
     except Exception as e:
