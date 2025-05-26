@@ -1,2 +1,2 @@
 # api_token.py
-API_TOKEN = "BLAH"  # Replace with your actual token
+API_TOKEN = "YOUR_NOAA_API_TOKEN"  # Replace with your actual token

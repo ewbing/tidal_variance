@@ -405,7 +405,7 @@ def main():
 
     # Define the analysis period statically (defaults used if source is api)
     start_year = 2019
-    end_year = 2024
+    end_year = 2025
     start_date = datetime(start_year, 1, 1)
     end_date = datetime(end_year, 12, 31)
 
@@ -536,7 +536,10 @@ def main():
         average_monthly_counts_daytime = calculate_monthly_avg_count_below_tidepool_tide_daytime(low_tides_df)
         
         # Plot the histogram
-        plot_monthly_avg_count_below_tidepool_daytime_histogram(average_monthly_counts_daytime)
+        plot_monthly_avg_count_below_tidepool_daytime_histogram(
+            average_monthly_counts_daytime,
+            title="Average Monthly Count of Tidepool Tides During Daytime (" + str(start_year) + " to " + str(end_year) + ")",
+            )
 
     except pd.errors.ParserError:
         print("Error: Could not parse the CSV file.")
