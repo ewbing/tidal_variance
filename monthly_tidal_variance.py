@@ -329,6 +329,12 @@ def calculate_monthly_avg_count_below_tidepool_tide_daytime(df, output_filename=
     
     # Calculate the average count per month across all years
     average_monthly_counts_daytime = monthly_counts_daytime.groupby("month")["count_below_tidepool_tide_daytime"].mean().reset_index()
+
+    # Create a new DataFrame with all months (1-12)
+    all_months = pd.DataFrame({"month": range(1, 13)})
+
+    # Merge the average monthly counts with the all_months DataFrame to include months with 0 results
+    average_monthly_counts_daytime = all_months.merge(average_monthly_counts_daytime, on="month", how="left").fillna(0)
     
     # Add month names for readability
     average_monthly_counts_daytime["month_name"] = average_monthly_counts_daytime["month"].apply(
@@ -357,54 +363,6 @@ def plot_monthly_avg_count_below_tidepool_daytime_histogram(average_monthly_coun
     plt.bar(
         average_monthly_counts_daytime["month_name"],
         average_monthly_counts_daytime["average_count_below_tidepool_tide_daytime"],
-        color="orchid",
-    )
-    plt.title(title)
-    plt.xlabel("Month")
-    plt.ylabel("Average Count of Tides Below " + str(TIDEPOOL_TIDE) + " During Daytime")
-    plt.xticks(rotation=45)
-    plt.grid(axis="y")
-    plt.tight_layout()
-    plt.savefig("average_count_below_tidepool_tide_daytime_histogram.png")  # Saves the plot as an image file
-    plt.show()
-
-def plot_monthly_avg_count_below_tidepool_daytime_histogram_new(average_monthly_counts_daytime, title="Average Monthly Count of Tidepool Tides During Daytime"):
-    """
-    Plot a histogram of the average monthly count of tides below TIDEPOOL_TIDE during daytime.
-    
-    Args:
-        average_monthly_counts_daytime (pd.DataFrame): DataFrame containing average monthly counts of tides below TIDEPOOL_TIDE during daytime.
-        title (str): Title of the histogram.
-    """
-    # Create a DataFrame with all months
-    all_months = pd.DataFrame({
-        'month': range(1, 13),
-        'month_name': [calendar.month_name[i] for i in range(1, 13)]
-    })
-    
-    # Ensure 'month' is of integer type in both DataFrames
-    average_monthly_counts_daytime['month'] = average_monthly_counts_daytime['month'].astype(int)
-    all_months['month'] = all_months['month'].astype(int)
-    
-    # Merge with the existing data and fill missing months with 0
-    merged_df = all_months.merge(
-        average_monthly_counts_daytime, 
-        on='month', 
-        how='left'
-    ).fillna({'average_count_below_tidepool_tide_daytime': 0})
-    
-    # Debugging: Print columns and first few rows
-    print("Columns in merged_df:", merged_df.columns)
-    print(merged_df.head())
-    
-    # Proceed with plotting if 'month_name' exists
-    if 'month_name' not in merged_df.columns:
-        raise KeyError("'month_name' column is missing from the merged DataFrame.")
-    
-    plt.figure(figsize=(10, 6))
-    plt.bar(
-        merged_df["month_name"],
-        merged_df["average_count_below_tidepool_tide_daytime"],
         color="orchid",
     )
     plt.title(title)

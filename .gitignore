@@ -19,5 +19,5 @@ out/
 .vscode/
 .idea/
 
-# Ignore api_token.py - is meant to hold API key
+# Ignore api_token.py - holds the API key
 api_token.py
