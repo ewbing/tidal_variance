@@ -171,7 +171,7 @@ def analyze_daytime_monthly_average(low_tides_df, start_hour=10, end_hour=16):
 
 
 def plot_monthly_average(
-    monthly_avg, title="Average Mean Low Tide per Month at Pillar Point Harbor"
+    monthly_avg, title="Average Mean Low Tide per Month"
 ):
     """Plot the monthly variance of mean low tides."""
     plt.figure(figsize=(10, 6))
@@ -240,7 +240,7 @@ def plot_monthly_avg_lowest_daytime_tide(
     plt.savefig("average_lowest_tide_per_month.png")  # Saves the plot as an image file
     plt.show()
 
-def calculate_monthly_avg_lowest_day_tide_by_year(df):
+def calculate_monthly_avg_lowest_day_tide_by_year(df, output_filename="monthly_avg_lowest_tide_by_year.csv"):
     """
     Calculate the average lowest daytime tide each month per year.
 
@@ -267,6 +267,9 @@ def calculate_monthly_avg_lowest_day_tide_by_year(df):
 
     # Rename columns for clarity
     monthly_avg_lowest_yearly.rename(columns={"v": "average_lowest_tide"}, inplace=True)
+
+    # Export to CSV
+    export_to_csv(monthly_avg_lowest_yearly, output_filename)
 
     return monthly_avg_lowest_yearly
 
@@ -405,7 +408,7 @@ def main():
 
     # Define the analysis period statically (defaults used if source is api)
     start_year = 2019
-    end_year = 2025
+    end_year = 2024
     start_date = datetime(start_year, 1, 1)
     end_date = datetime(end_year, 12, 31)
 
@@ -511,7 +514,7 @@ def main():
             print("Plotting time window variance...")
             plot_monthly_average(
                 monthly_avg_window,
-                title="Average Daytime Low Tide per Month at Pillar Point Harbor between "
+                title="Average Daytime Low Tide per Month between "
                 + str(start_year)
                 + " and "
                 + str(end_year),
