@@ -171,7 +171,7 @@ def analyze_daytime_monthly_average(low_tides_df, start_hour=10, end_hour=16):
 
 
 def plot_monthly_average(
-    monthly_avg, title="Average Mean Low Tide per Month"
+    monthly_avg, title="Average Low Tide per Month"
 ):
     """Plot the monthly variance of mean low tides."""
     plt.figure(figsize=(10, 6))
@@ -182,6 +182,7 @@ def plot_monthly_average(
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
+    plt.savefig("average_lowest_tide_per_month.png")  # Saves the plot as an image file
     plt.show()
 
 
@@ -237,7 +238,7 @@ def plot_monthly_avg_lowest_daytime_tide(
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
-    plt.savefig("average_lowest_tide_per_month.png")  # Saves the plot as an image file
+    plt.savefig("average_lowest_daytime_tide_per_month.png")  # Saves the plot as an image file
     plt.show()
 
 def calculate_monthly_avg_lowest_day_tide_by_year(df, output_filename="monthly_avg_lowest_tide_by_year.csv"):
@@ -499,26 +500,27 @@ def main():
             + str(end_year),
         )
 
-        # Analyze day time variance
-        print("Cacluate average daytime low tide per month...")
-        monthly_avg_window = analyze_daytime_monthly_average(
-            low_tides_df, DAY_START_HOUR, DAY_END_HOUR
-        )
+        # # Analyze day time variance
+        # print("Cacluate average daytime low tide per month...")
+        # monthly_avg_window = analyze_daytime_monthly_average(
+        #     low_tides_df, DAY_START_HOUR, DAY_END_HOUR
+        # )
 
-        if not monthly_avg_window.empty:
-            # Export time window variance data to CSV
-            print("Exporting time window variance data to CSV...")
-            export_to_csv(monthly_avg_window, "monthly_daytime_low_tide_average.csv")
+        # if not monthly_avg_window.empty:
+        #     # Export time window variance data to CSV
+        #     print("Exporting time window variance data to CSV...")
+        #     export_to_csv(monthly_avg_window, "monthly_daytime_low_tide_average.csv")
 
-            # Plot the time window variance
-            print("Plotting time window variance...")
-            plot_monthly_average(
-                monthly_avg_window,
-                title="Average Daytime Low Tide per Month between "
-                + str(start_year)
-                + " and "
-                + str(end_year),
-            )
+        #     # Plot the time window variance
+        #     # TODO: Add file name for new plot
+        #     print("Plotting time window variance...")
+        #     plot_monthly_average(
+        #         monthly_avg_window,
+        #         title="Average Daytime Low Tide per Month between "
+        #         + str(start_year)
+        #         + " and "
+        #         + str(end_year),
+        #     )
 
         # Calculate and Plot Average Lowest Tide Each Month
         print("Calculating average lowest tide each month across all years...")
