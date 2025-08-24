@@ -118,6 +118,27 @@ def identify_low_tides(df):
     return pd.DataFrame(low_tides)
 
 
+def identify_high_tides(df):
+    """
+    Identify high tides by finding local maxima in the tidal data.
+
+    Args:
+        df (pd.DataFrame): Tidal data with 't' (datetime) and 'v' (tide level) columns
+                           as well as 'type' (H for high tide, L for low tide)
+
+    Returns:
+        pd.DataFrame: DataFrame containing only high tides.
+    """
+    # Filter out low tides and sort by time
+    df = df[df['type'] != 'L'].sort_values("t").reset_index(drop=True)
+    high_tides = []
+
+    for i in range(1, len(df) - 1):
+        if df.loc[i, "v"] > df.loc[i - 1, "v"] and df.loc[i, "v"] > df.loc[i + 1, "v"]:
+            high_tides.append(df.loc[i])
+
+    return pd.DataFrame(high_tides)
+
 def analyze_monthly_average(low_tides_df):
     """
     Analyze monthly variance in low tide data.
@@ -239,6 +260,59 @@ def plot_monthly_avg_lowest_daytime_tide(
     plt.grid(axis="y")
     plt.tight_layout()
     plt.savefig("average_lowest_daytime_tide_per_month.png")  # Saves the plot as an image file
+    plt.show()
+
+def calculate_monthly_avg_highest_daytime_tide(df):
+    """
+    Calculate the average highest daytime tide each month across all years.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing high tide data with 't' and 'v' columns.
+
+    Returns:
+        pd.DataFrame: DataFrame with 'month', 'average_highest_tide', and 'month_name' columns.
+    """
+    # Filter tides to daytime
+    df_filtered = df[(df["t"].dt.hour >= DAY_START_HOUR) & (df["t"].dt.hour <= DAY_END_HOUR)].copy()
+
+    # Extract month from datetime
+    df_filtered["month"] = df_filtered["t"].dt.month
+
+    # Calculate monthly average highest tide
+    monthly_avg_highest = df_filtered.groupby("month")["v"].mean().reset_index()
+
+    # Add month names for readability
+    monthly_avg_highest["month_name"] = monthly_avg_highest["month"].apply(
+        lambda x: datetime(1900, x, 1).strftime("%B")
+    )
+
+    # Rename columns for clarity
+    monthly_avg_highest.rename(columns={"v": "average_highest_tide"}, inplace=True)
+
+    return monthly_avg_highest
+
+
+def plot_monthly_avg_highest_daytime_tide(monthly_avg_highest, title="Average of Monthly Highest Daytime Tide"):
+    """
+    Plot the average highest tide each month.
+
+    Args:
+        monthly_avg_highest (pd.DataFrame): DataFrame containing average highest tide per month.
+        title (str): Title of the plot.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.bar(
+        monthly_avg_highest["month_name"],
+        monthly_avg_highest["average_highest_tide"],
+        color="salmon",
+    )
+    plt.title(title)
+    plt.xlabel("Month")
+    plt.ylabel("Average Highest Tide Level (m)")
+    plt.xticks(rotation=45)
+    plt.grid(axis="y")
+    plt.tight_layout()
+    plt.savefig("average_highest_daytime_tide_per_month.png")  # Saves the plot as an image file
     plt.show()
 
 def calculate_monthly_avg_lowest_day_tide_by_year(df, output_filename="monthly_avg_lowest_tide_by_year.csv"):
@@ -545,6 +619,33 @@ def main():
             average_monthly_counts_daytime,
             title="Average Monthly Count of Tidepool Tides During Daytime (" + str(start_year) + " to " + str(end_year) + ")",
             )
+
+
+        # Identify high tides
+        print("Identifying high tides...")
+        high_tides_df = identify_high_tides(tidal_df)
+
+        if high_tides_df.empty:
+            print("No high tides identified in the data.")
+            return
+
+        # Export detailed high tide data to CSV
+        print("Exporting detailed high tide data to CSV...")
+        export_to_csv(high_tides_df, "detailed_high_tide_data" + 
+                        "_" + str(start_year) + "_" + str(end_year) + ".csv")
+
+        # Calculate and Plot Average Highest Tide Each Month
+        print("Calculating average highest tide each month across all years...")
+        monthly_avg_highest = calculate_monthly_avg_highest_daytime_tide(low_tides_df)
+
+        print("Exporting average highest tide data to CSV...")
+        export_to_csv(monthly_avg_highest, "average_highest_daytime_tide_per_month.csv")
+
+        print("Plotting average highest tide each month...")
+        plot_monthly_avg_highest_daytime_tide(monthly_avg_highest)
+
+
+
 
     except pd.errors.ParserError:
         print("Error: Could not parse the CSV file.")
