@@ -96,48 +96,47 @@ def fetch_tidal_data(station_id, start_date, end_date, product="predictions"):
 
 def identify_low_tides(df):
     """
-    Identify low tides by finding local minima in the tidal data.
+    Identify lower-low tides as local minima among consecutive low-tide points.
 
     Args:
         df (pd.DataFrame): Tidal data with 't' (datetime) and 'v' (tide level) columns
                            as well as 'type' (H for high tide, L for low tide)
 
     Returns:
-        pd.DataFrame: DataFrame containing only low tides.
+        pd.DataFrame: Lower-low tides (local minima of low-tide sequence).
     """
-    # df = df.sort_values("t").reset_index(drop=True)
+    low_tides = df[df["type"] == "L"].sort_values("t").reset_index(drop=True).copy()
+    if len(low_tides) <= 1:
+        return low_tides.copy()
 
-    # Filter out high tides and sort by time
-    df = df[df['type'] != 'H'].sort_values("t").reset_index(drop=True)
-    low_tides = []
+    # Boundary padding: prepend second tide and append second-to-last tide,
+    # then apply the same local-extrema rule to all original points.
+    padded = pd.concat(
+        [low_tides.iloc[[1]], low_tides, low_tides.iloc[[-2]]],
+        ignore_index=True,
+    )
+    interior_mask = (padded["v"] < padded["v"].shift(1)) & (padded["v"] < padded["v"].shift(-1))
+    mask = interior_mask.iloc[1:-1].reset_index(drop=True)
+    return low_tides[mask].reset_index(drop=True)
 
-    for i in range(1, len(df) - 1):
-        if df.loc[i, "v"] < df.loc[i - 1, "v"] and df.loc[i, "v"] < df.loc[i + 1, "v"]:
-            low_tides.append(df.loc[i])
 
-    return pd.DataFrame(low_tides)
-
-
-def identify_high_tides(df):
+def identify_higher_low_tides(df):
     """
-    Identify high tides by finding local maxima in the tidal data.
-
-    Args:
-        df (pd.DataFrame): Tidal data with 't' (datetime) and 'v' (tide level) columns
-                           as well as 'type' (H for high tide, L for low tide)
-
-    Returns:
-        pd.DataFrame: DataFrame containing only high tides.
+    Identify higher-low tides as local maxima among consecutive low-tide points.
     """
-    # Filter out low tides and sort by time
-    df = df[df['type'] != 'L'].sort_values("t").reset_index(drop=True)
-    high_tides = []
+    low_tides = df[df["type"] == "L"].sort_values("t").reset_index(drop=True).copy()
+    if len(low_tides) <= 1:
+        return low_tides.copy()
 
-    for i in range(1, len(df) - 1):
-        if df.loc[i, "v"] > df.loc[i - 1, "v"] and df.loc[i, "v"] > df.loc[i + 1, "v"]:
-            high_tides.append(df.loc[i])
-
-    return pd.DataFrame(high_tides)
+    # Boundary padding: prepend second tide and append second-to-last tide,
+    # then apply the same local-extrema rule to all original points.
+    padded = pd.concat(
+        [low_tides.iloc[[1]], low_tides, low_tides.iloc[[-2]]],
+        ignore_index=True,
+    )
+    interior_mask = (padded["v"] > padded["v"].shift(1)) & (padded["v"] > padded["v"].shift(-1))
+    mask = interior_mask.iloc[1:-1].reset_index(drop=True)
+    return low_tides[mask].reset_index(drop=True)
 
 def analyze_monthly_average(low_tides_df):
     """
@@ -150,8 +149,9 @@ def analyze_monthly_average(low_tides_df):
     Returns:
         pd.DataFrame: Average low tide per month.
     """
-    low_tides_df["month"] = low_tides_df["t"].dt.month
-    monthly_avg = low_tides_df.groupby("month")["v"].mean().reset_index()
+    df_local = low_tides_df.copy()
+    df_local["month"] = df_local["t"].dt.month
+    monthly_avg = df_local.groupby("month")["v"].mean().reset_index()
     monthly_avg["month_name"] = monthly_avg["month"].apply(
         lambda x: datetime(1900, x, 1).strftime("%B")
     )
@@ -172,9 +172,10 @@ def analyze_daytime_monthly_average(low_tides_df, start_hour=10, end_hour=16):
         pd.DataFrame: Average low tide per month within the time window.
     """
     # Filter low tides within the specified time window
-    low_tides_df["hour"] = low_tides_df["t"].dt.hour
-    filtered_df = low_tides_df[
-        (low_tides_df["hour"] >= start_hour) & (low_tides_df["hour"] <= end_hour)
+    df_local = low_tides_df.copy()
+    df_local["hour"] = df_local["t"].dt.hour
+    filtered_df = df_local[
+        (df_local["hour"] >= start_hour) & (df_local["hour"] <= end_hour)
     ]
 
     if filtered_df.empty:
@@ -199,7 +200,7 @@ def plot_monthly_average(
     plt.bar(monthly_avg["month_name"], monthly_avg["v"], color="skyblue")
     plt.title(title)
     plt.xlabel("Month")
-    plt.ylabel("Average Low Tide Level (m)")
+    plt.ylabel("Average Low Tide Level (ft)")
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
@@ -255,7 +256,7 @@ def plot_monthly_avg_lowest_daytime_tide(
     )
     plt.title(title)
     plt.xlabel("Month")
-    plt.ylabel("Average Lowest Tide Level (m)")
+    plt.ylabel("Average Lowest Tide Level (ft)")
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
@@ -308,7 +309,7 @@ def plot_monthly_avg_highest_daytime_tide(monthly_avg_highest, title="Average of
     )
     plt.title(title)
     plt.xlabel("Month")
-    plt.ylabel("Average Highest Tide Level (m)")
+    plt.ylabel("Average Highest Tide Level (ft)")
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
@@ -367,7 +368,7 @@ def plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly, title="Avera
     
     plt.title(title)
     plt.xlabel("Month")
-    plt.ylabel("Average Lowest Tide Level (m)")
+    plt.ylabel("Average Lowest Tide Level (ft)")
     plt.legend(title="Year")
     plt.xticks(rotation=45)
     plt.grid(True)
@@ -386,16 +387,18 @@ def calculate_monthly_avg_count_below_tidepool_tide_daytime(df, output_filename=
     Returns:
         pd.DataFrame: DataFrame with 'month', 'average_count_below_tidepool_tide_daytime', and 'month_name' columns.
     """
+    # Work on a copy to avoid mutating the input DataFrame.
+    df_local = df.copy()
     # Ensure the datetime column is in datetime format
-    df["t"] = pd.to_datetime(df["t"])
+    df_local["t"] = pd.to_datetime(df_local["t"])
     
     # Extract month, year, and hour from datetime
-    df["month"] = df["t"].dt.month
-    df["year"] = df["t"].dt.year
-    df["hour"] = df["t"].dt.hour
+    df_local["month"] = df_local["t"].dt.month
+    df_local["year"] = df_local["t"].dt.year
+    df_local["hour"] = df_local["t"].dt.hour
     
     # Filter tides below TIDEPOOL_TIDE
-    df_below = df[df["v"] < TIDEPOOL_TIDE].copy()
+    df_below = df_local[df_local["v"] < TIDEPOOL_TIDE].copy()
     
     # Further filter to include only tides during daytime hours
     df_below_daytime = df_below[
@@ -543,9 +546,11 @@ def main():
     #Analyze data
     try:
 
-        # Identify low tides
-        print("Identifying low tides...")
+        # Identify lower-low and higher-low tides from local minima/maxima
+        # in the low-tide sequence (compared to previous/next low tide).
+        print("Identifying lower-low and higher-low tides...")
         low_tides_df = identify_low_tides(tidal_df)
+        higher_low_tides_df = identify_higher_low_tides(tidal_df)
 
         if low_tides_df.empty:
             print("No low tides identified in the data.")
@@ -621,22 +626,19 @@ def main():
             )
 
 
-        # Identify high tides
-        print("Identifying high tides...")
-        high_tides_df = identify_high_tides(tidal_df)
-
-        if high_tides_df.empty:
-            print("No high tides identified in the data.")
+        if higher_low_tides_df.empty:
+            print("No higher-low tides identified in the data.")
             return
 
-        # Export detailed high tide data to CSV
-        print("Exporting detailed high tide data to CSV...")
-        export_to_csv(high_tides_df, "detailed_high_tide_data" + 
+        # Export detailed higher-low tide data to CSV.
+        # Filename retains existing convention for compatibility.
+        print("Exporting detailed higher-low tide data to CSV...")
+        export_to_csv(higher_low_tides_df, "detailed_high_tide_data" + 
                         "_" + str(start_year) + "_" + str(end_year) + ".csv")
 
-        # Calculate and Plot Average Highest Tide Each Month
-        print("Calculating average highest tide each month across all years...")
-        monthly_avg_highest = calculate_monthly_avg_highest_daytime_tide(low_tides_df)
+        # Calculate and plot average higher-low tide each month.
+        print("Calculating average higher-low tide each month across all years...")
+        monthly_avg_highest = calculate_monthly_avg_highest_daytime_tide(higher_low_tides_df)
 
         print("Exporting average highest tide data to CSV...")
         export_to_csv(monthly_avg_highest, "average_highest_daytime_tide_per_month.csv")
