@@ -1,6 +1,7 @@
 import argparse
 import calendar
 from datetime import datetime
+from pathlib import Path
 
 import os
 import requests
@@ -466,6 +467,24 @@ def export_to_csv(df, filename):
     df.to_csv(filename, index=False)
     print(f"Data exported to {filename}")
 
+def resolve_input_path(path_str):
+    """
+    Resolve an input path robustly for CLI and debugger launches.
+
+    Checks:
+    1) As provided (absolute or relative to current working directory)
+    2) Relative to this script's directory
+    """
+    candidate = Path(path_str).expanduser()
+    if candidate.exists():
+        return candidate.resolve()
+
+    script_dir_candidate = (Path(__file__).resolve().parent / candidate).resolve()
+    if script_dir_candidate.exists():
+        return script_dir_candidate
+
+    return None
+
 
 def main():
 
@@ -495,9 +514,16 @@ def main():
     # Bring in data
     if args.source == "csv":
         try:
-            print(f"Reading detailed tidal data from {args.csv_path}...")
+            resolved_csv_path = resolve_input_path(args.csv_path)
+            if resolved_csv_path is None:
+                print(f"Error: The file {args.csv_path} does not exist.")
+                print(f"Current working directory: {Path.cwd()}")
+                print(f"Script directory: {Path(__file__).resolve().parent}")
+                return
+
+            print(f"Reading detailed tidal data from {resolved_csv_path}...")
             tidal_df = pd.read_csv(
-                args.csv_path, parse_dates=["t"]
+                resolved_csv_path, parse_dates=["t"]
             )  # Adjust 't' if the date column has a different name
             print("Data successfully loaded from CSV.")
 
