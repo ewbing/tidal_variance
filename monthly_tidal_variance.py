@@ -121,24 +121,6 @@ def identify_low_tides(df):
     return low_tides[mask].reset_index(drop=True)
 
 
-def identify_higher_low_tides(df):
-    """
-    Identify higher-low tides as local maxima among consecutive low-tide points.
-    """
-    low_tides = df[df["type"] == "L"].sort_values("t").reset_index(drop=True).copy()
-    if len(low_tides) <= 1:
-        return low_tides.copy()
-
-    # Boundary padding: prepend second tide and append second-to-last tide,
-    # then apply the same local-extrema rule to all original points.
-    padded = pd.concat(
-        [low_tides.iloc[[1]], low_tides, low_tides.iloc[[-2]]],
-        ignore_index=True,
-    )
-    interior_mask = (padded["v"] > padded["v"].shift(1)) & (padded["v"] > padded["v"].shift(-1))
-    mask = interior_mask.iloc[1:-1].reset_index(drop=True)
-    return low_tides[mask].reset_index(drop=True)
-
 def analyze_monthly_average(low_tides_df):
     """
     Analyze monthly variance in low tide data.
@@ -262,59 +244,6 @@ def plot_monthly_avg_lowest_daytime_tide(
     plt.grid(axis="y")
     plt.tight_layout()
     plt.savefig("average_lowest_daytime_tide_per_month.png")  # Saves the plot as an image file
-    plt.show()
-
-def calculate_monthly_avg_highest_daytime_tide(df):
-    """
-    Calculate the average highest daytime tide each month across all years.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing high tide data with 't' and 'v' columns.
-
-    Returns:
-        pd.DataFrame: DataFrame with 'month', 'average_highest_tide', and 'month_name' columns.
-    """
-    # Filter tides to daytime
-    df_filtered = df[(df["t"].dt.hour >= DAY_START_HOUR) & (df["t"].dt.hour <= DAY_END_HOUR)].copy()
-
-    # Extract month from datetime
-    df_filtered["month"] = df_filtered["t"].dt.month
-
-    # Calculate monthly average highest tide
-    monthly_avg_highest = df_filtered.groupby("month")["v"].mean().reset_index()
-
-    # Add month names for readability
-    monthly_avg_highest["month_name"] = monthly_avg_highest["month"].apply(
-        lambda x: datetime(1900, x, 1).strftime("%B")
-    )
-
-    # Rename columns for clarity
-    monthly_avg_highest.rename(columns={"v": "average_highest_tide"}, inplace=True)
-
-    return monthly_avg_highest
-
-
-def plot_monthly_avg_highest_daytime_tide(monthly_avg_highest, title="Average of Monthly Highest Daytime Tide"):
-    """
-    Plot the average highest tide each month.
-
-    Args:
-        monthly_avg_highest (pd.DataFrame): DataFrame containing average highest tide per month.
-        title (str): Title of the plot.
-    """
-    plt.figure(figsize=(10, 6))
-    plt.bar(
-        monthly_avg_highest["month_name"],
-        monthly_avg_highest["average_highest_tide"],
-        color="salmon",
-    )
-    plt.title(title)
-    plt.xlabel("Month")
-    plt.ylabel("Average Highest Tide Level (ft)")
-    plt.xticks(rotation=45)
-    plt.grid(axis="y")
-    plt.tight_layout()
-    plt.savefig("average_highest_daytime_tide_per_month.png")  # Saves the plot as an image file
     plt.show()
 
 def calculate_monthly_avg_lowest_day_tide_by_year(df, output_filename="monthly_avg_lowest_tide_by_year.csv"):
@@ -572,11 +501,9 @@ def main():
     #Analyze data
     try:
 
-        # Identify lower-low and higher-low tides from local minima/maxima
-        # in the low-tide sequence (compared to previous/next low tide).
-        print("Identifying lower-low and higher-low tides...")
+        # Identify lower-low tides as local minima in the low-tide sequence.
+        print("Identifying lower-low tides...")
         low_tides_df = identify_low_tides(tidal_df)
-        higher_low_tides_df = identify_higher_low_tides(tidal_df)
 
         if low_tides_df.empty:
             print("No low tides identified in the data.")
@@ -650,31 +577,6 @@ def main():
             average_monthly_counts_daytime,
             title="Average Monthly Count of Tidepool Tides During Daytime (" + str(start_year) + " to " + str(end_year) + ")",
             )
-
-
-        if higher_low_tides_df.empty:
-            print("No higher-low tides identified in the data.")
-            return
-
-        # Export detailed higher-low tide data to CSV.
-        # Filename retains existing convention for compatibility.
-        print("Exporting detailed higher-low tide data to CSV...")
-        export_to_csv(higher_low_tides_df, "detailed_high_tide_data" + 
-                        "_" + str(start_year) + "_" + str(end_year) + ".csv")
-
-        # Calculate and plot average higher-low tide each month.
-        print("Calculating average higher-low tide each month across all years...")
-        monthly_avg_highest = calculate_monthly_avg_highest_daytime_tide(higher_low_tides_df)
-
-        print("Exporting average highest tide data to CSV...")
-        export_to_csv(monthly_avg_highest, "average_highest_daytime_tide_per_month.csv")
-
-        print("Plotting average highest tide each month...")
-        plot_monthly_avg_highest_daytime_tide(monthly_avg_highest)
-
-
-
-
     except pd.errors.ParserError:
         print("Error: Could not parse the CSV file.")
     except ValueError as e:
