@@ -5,15 +5,14 @@ env/
 # Ignore compiled Python files
 __pycache__/
 *.pyc
+.pytest_cache/
 
-# Ignore data files
+# Ignore generated analysis outputs
+data/processed/
+out/plots/
 *.csv
-*.xlsx
 *.png
-
-# Ignore certain dirs
 old/
-out/
 
 # Ignore IDE-specific files
 .vscode/

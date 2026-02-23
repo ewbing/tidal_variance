@@ -21,12 +21,24 @@ DAY_END_HOUR = 16
 # Highest tidepooling tide
 TIDEPOOL_TIDE = 0.1
 
+# Project output/data directories
+DATA_RAW_DIR = Path("data/raw")
+DATA_PROCESSED_DIR = Path("data/processed")
+OUT_PLOTS_DIR = Path("out/plots")
+
 # Attempt to import API_TOKEN from api_token.py
 try:
     from api_token import API_TOKEN
 except (ImportError, AttributeError):
     API_TOKEN = None
     print("Warning: API_TOKEN not found. 'water_level' data will not be available.")
+
+
+def ensure_project_directories():
+    """Ensure project data/output directories exist."""
+    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    OUT_PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 def ensure_api_token_file():
     """Create a token template file if API token is not configured."""
@@ -195,7 +207,7 @@ def plot_monthly_average(
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
-    plt.savefig("average_lowest_tide_per_month.png")  # Saves the plot as an image file
+    plt.savefig(OUT_PLOTS_DIR / "average_lowest_tide_per_month.png")
     plt.show()
 
 
@@ -251,12 +263,12 @@ def plot_monthly_avg_lowest_daytime_tide(
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
-    plt.savefig("average_lowest_daytime_tide_per_month.png")  # Saves the plot as an image file
+    plt.savefig(OUT_PLOTS_DIR / "average_lowest_daytime_tide_per_month.png")
     plt.show()
 
 def calculate_monthly_avg_lowest_day_tide_by_year(
     df,
-    output_filename="monthly_avg_lowest_tide_by_year.csv",
+    output_filename=DATA_PROCESSED_DIR / "monthly_avg_lowest_tide_by_year.csv",
 ):
     """
     Calculate the average lowest daytime tide each month per year.
@@ -326,12 +338,12 @@ def plot_monthly_avg_lowest_tide_by_year(
     plt.xticks(rotation=45)
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("average_lowest_day_tide_by_year.png")  # Saves the plot as an image file
+    plt.savefig(OUT_PLOTS_DIR / "average_lowest_day_tide_by_year.png")
     plt.show()
 
 def calculate_monthly_avg_count_below_tidepool_tide_daytime(
     df,
-    output_filename="monthly_avg_count_below_tidepool_daytime.csv",
+    output_filename=DATA_PROCESSED_DIR / "monthly_avg_count_below_tidepool_daytime.csv",
 ):
     """
     Calculate the average count of tides below TIDEPOOL_TIDE during daytime for
@@ -436,9 +448,7 @@ def plot_monthly_avg_count_below_tidepool_daytime_histogram(
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
-    plt.savefig(
-        "average_count_below_tidepool_tide_daytime_histogram.png"
-    )
+    plt.savefig(OUT_PLOTS_DIR / "average_count_below_tidepool_tide_daytime_histogram.png")
     plt.show()
 
 def export_to_csv(df, filename):
@@ -483,7 +493,7 @@ def parse_args():
     parser.add_argument(
         "--csv_path",
         type=str,
-        default="raw_tide_data.csv",
+        default=str(DATA_RAW_DIR / "raw_tide_data.csv"),
         help="Path to the detailed low tide CSV file.",
     )
     return parser.parse_args()
@@ -491,6 +501,7 @@ def parse_args():
 
 def load_tidal_data(args):
     """Load tide data from CSV or NOAA API and return period metadata."""
+    ensure_project_directories()
     start_year = 2019
     end_year = 2024
     start_date = datetime(start_year, 1, 1)
@@ -542,7 +553,7 @@ def load_tidal_data(args):
             )
 
             print("Exporting detailed raw tide data to CSV...")
-            export_to_csv(tidal_df, "raw_tide_data.csv")
+            export_to_csv(tidal_df, DATA_RAW_DIR / "raw_tide_data.csv")
 
         except requests.exceptions.RequestException as e:
             print(f"An error occurred while fetching data: {e}")
@@ -556,6 +567,7 @@ def load_tidal_data(args):
 
 def run_analysis(tidal_df, start_year, end_year):
     """Analyze low tides, export CSVs, and generate plots."""
+    ensure_project_directories()
     try:
         print("Identifying lower-low tides...")
         low_tides_df = identify_low_tides(tidal_df)
@@ -566,9 +578,7 @@ def run_analysis(tidal_df, start_year, end_year):
 
         # Export detailed low tide data to CSV
         print("Exporting detailed low tide data to CSV...")
-        output_filename = (
-            f"detailed_low_tide_data_{start_year}_{end_year}.csv"
-        )
+        output_filename = DATA_PROCESSED_DIR / f"detailed_low_tide_data_{start_year}_{end_year}.csv"
         export_to_csv(low_tides_df, output_filename)
 
         # Analyze monthly variance
@@ -577,7 +587,7 @@ def run_analysis(tidal_df, start_year, end_year):
 
         # Export analyzed data to CSV
         print("Exporting data to CSV...")
-        export_to_csv(monthly_avg, "monthly_low_tide_average.csv")
+        export_to_csv(monthly_avg, DATA_PROCESSED_DIR / "monthly_low_tide_average.csv")
 
         # Plot the overall monthly variance
         print("Plotting overall monthly variance...")
@@ -616,7 +626,7 @@ def run_analysis(tidal_df, start_year, end_year):
         monthly_avg_lowest = calculate_monthly_avg_lowest_daytime_tide(low_tides_df)
 
         print("Exporting average lowest tide data to CSV...")
-        export_to_csv(monthly_avg_lowest, "average_lowest_daytime_tide_per_month.csv")
+        export_to_csv(monthly_avg_lowest, DATA_PROCESSED_DIR / "average_lowest_daytime_tide_per_month.csv")
 
         print("Plotting average lowest tide each month...")
         plot_monthly_avg_lowest_daytime_tide(monthly_avg_lowest)
