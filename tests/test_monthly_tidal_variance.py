@@ -60,6 +60,22 @@ class MonthlyTidalVarianceTests(unittest.TestCase):
             ].sum()
             self.assertEqual(other_months_nonzero, 0.0)
 
+    def test_export_to_csv_renames_existing_file(self):
+        """Existing output CSV should be renamed before writing a new file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "raw_tide_data_2019_2024.csv"
+            df_initial = pd.DataFrame({"t": [pd.Timestamp("2024-01-01 12:00:00")], "v": [1.0]})
+            df_updated = pd.DataFrame({"t": [pd.Timestamp("2024-01-02 12:00:00")], "v": [2.0]})
+
+            mtv.export_to_csv(df_initial, output_path)
+            mtv.export_to_csv(df_updated, output_path)
+
+            rotated_files = list(output_path.parent.glob("raw_tide_data_2019_2024.bak_*.csv"))
+            self.assertEqual(len(rotated_files), 1)
+
+            current_df = pd.read_csv(output_path, parse_dates=["t"])
+            self.assertAlmostEqual(current_df.loc[0, "v"], 2.0)
+
 
 if __name__ == "__main__":
     unittest.main()

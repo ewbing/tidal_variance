@@ -459,8 +459,23 @@ def export_to_csv(df, filename):
         df (pd.DataFrame): DataFrame to export.
         filename (str): Name of the CSV file.
     """
-    df.to_csv(filename, index=False)
-    print(f"Data exported to {filename}")
+    output_path = Path(filename)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if output_path.exists():
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        rotated_path = output_path.with_name(
+            f"{output_path.stem}.bak_{timestamp}{output_path.suffix}"
+        )
+
+        print(
+            f"Warning: {output_path} already exists. "
+            f"Renaming existing file to {rotated_path}."
+        )
+        output_path.rename(rotated_path)
+
+    df.to_csv(output_path, index=False)
+    print(f"Data exported to {output_path}")
 
 def resolve_input_path(path_str):
     """
@@ -553,7 +568,8 @@ def load_tidal_data(args):
             )
 
             print("Exporting detailed raw tide data to CSV...")
-            export_to_csv(tidal_df, DATA_RAW_DIR / "raw_tide_data.csv")
+            raw_output = DATA_RAW_DIR / f"raw_tide_data_{start_year}_{end_year}.csv"
+            export_to_csv(tidal_df, raw_output)
 
         except requests.exceptions.RequestException as e:
             print(f"An error occurred while fetching data: {e}")
