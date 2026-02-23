@@ -195,8 +195,21 @@ def analyze_daytime_monthly_average(low_tides_df, start_hour=10, end_hour=16):
     return monthly_avg_window
 
 
+def build_period_suffix(start_year, end_year):
+    """Build a standard year suffix for output filenames."""
+    return f"{start_year}_{end_year}"
+
+
+def append_period_to_filename(filename, period_suffix):
+    """Append the period suffix before the file extension."""
+    path = Path(filename)
+    return path.with_name(f"{path.stem}_{period_suffix}{path.suffix}")
+
+
 def plot_monthly_average(
-    monthly_avg, title="Average Low Tide per Month"
+    monthly_avg,
+    title="Average Low Tide per Month",
+    output_filename=OUT_PLOTS_DIR / "average_lowest_tide_per_month.png",
 ):
     """Plot the monthly variance of mean low tides."""
     plt.figure(figsize=(10, 6))
@@ -207,7 +220,7 @@ def plot_monthly_average(
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
-    plt.savefig(OUT_PLOTS_DIR / "average_lowest_tide_per_month.png")
+    plt.savefig(output_filename)
     plt.show()
 
 
@@ -242,7 +255,9 @@ def calculate_monthly_avg_lowest_daytime_tide(df):
 
 
 def plot_monthly_avg_lowest_daytime_tide(
-    monthly_avg_lowest, title="Average of Monthly Lowest Daytime Tide"
+    monthly_avg_lowest,
+    title="Average of Monthly Lowest Daytime Tide",
+    output_filename=OUT_PLOTS_DIR / "average_lowest_daytime_tide_per_month.png",
 ):
     """
     Plot the average lowest tide each month.
@@ -263,7 +278,7 @@ def plot_monthly_avg_lowest_daytime_tide(
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
-    plt.savefig(OUT_PLOTS_DIR / "average_lowest_daytime_tide_per_month.png")
+    plt.savefig(output_filename)
     plt.show()
 
 def calculate_monthly_avg_lowest_day_tide_by_year(
@@ -306,6 +321,7 @@ def calculate_monthly_avg_lowest_day_tide_by_year(
 def plot_monthly_avg_lowest_tide_by_year(
     monthly_avg_lowest_yearly,
     title="Average Monthly Lowest Day Tide by Year",
+    output_filename=OUT_PLOTS_DIR / "average_lowest_day_tide_by_year.png",
 ):
     """
     Plot the average lowest tide each month per year.
@@ -338,7 +354,7 @@ def plot_monthly_avg_lowest_tide_by_year(
     plt.xticks(rotation=45)
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(OUT_PLOTS_DIR / "average_lowest_day_tide_by_year.png")
+    plt.savefig(output_filename)
     plt.show()
 
 def calculate_monthly_avg_count_below_tidepool_tide_daytime(
@@ -425,6 +441,7 @@ def calculate_monthly_avg_count_below_tidepool_tide_daytime(
 def plot_monthly_avg_count_below_tidepool_daytime_histogram(
     average_monthly_counts_daytime,
     title="Average Monthly Count of Tidepool Tides During Daytime",
+    output_filename=OUT_PLOTS_DIR / "average_count_below_tidepool_tide_daytime_histogram.png",
 ):
     """
     Plot a histogram of the average monthly count of tides below TIDEPOOL_TIDE during daytime.
@@ -448,7 +465,7 @@ def plot_monthly_avg_count_below_tidepool_daytime_histogram(
     plt.xticks(rotation=45)
     plt.grid(axis="y")
     plt.tight_layout()
-    plt.savefig(OUT_PLOTS_DIR / "average_count_below_tidepool_tide_daytime_histogram.png")
+    plt.savefig(output_filename)
     plt.show()
 
 def export_to_csv(df, filename):
@@ -585,6 +602,7 @@ def run_analysis(tidal_df, start_year, end_year):
     """Analyze low tides, export CSVs, and generate plots."""
     ensure_project_directories()
     try:
+        period_suffix = build_period_suffix(start_year, end_year)
         print("Identifying lower-low tides...")
         low_tides_df = identify_low_tides(tidal_df)
 
@@ -594,7 +612,10 @@ def run_analysis(tidal_df, start_year, end_year):
 
         # Export detailed low tide data to CSV
         print("Exporting detailed low tide data to CSV...")
-        output_filename = DATA_PROCESSED_DIR / f"detailed_low_tide_data_{start_year}_{end_year}.csv"
+        output_filename = append_period_to_filename(
+            DATA_PROCESSED_DIR / "detailed_low_tide_data.csv",
+            period_suffix,
+        )
         export_to_csv(low_tides_df, output_filename)
 
         # Analyze monthly variance
@@ -603,7 +624,13 @@ def run_analysis(tidal_df, start_year, end_year):
 
         # Export analyzed data to CSV
         print("Exporting data to CSV...")
-        export_to_csv(monthly_avg, DATA_PROCESSED_DIR / "monthly_low_tide_average.csv")
+        export_to_csv(
+            monthly_avg,
+            append_period_to_filename(
+                DATA_PROCESSED_DIR / "monthly_low_tide_average.csv",
+                period_suffix,
+            ),
+        )
 
         # Plot the overall monthly variance
         print("Plotting overall monthly variance...")
@@ -613,6 +640,10 @@ def run_analysis(tidal_df, start_year, end_year):
             + str(start_year)
             + " and "
             + str(end_year),
+            output_filename=append_period_to_filename(
+                OUT_PLOTS_DIR / "average_lowest_tide_per_month.png",
+                period_suffix,
+            ),
         )
 
         # # Analyze day time variance
@@ -643,22 +674,48 @@ def run_analysis(tidal_df, start_year, end_year):
 
         print("Exporting average lowest tide data to CSV...")
         export_to_csv(
-            monthly_avg_lowest, DATA_PROCESSED_DIR / "average_lowest_daytime_tide_per_month.csv"
+            monthly_avg_lowest,
+            append_period_to_filename(
+                DATA_PROCESSED_DIR / "average_lowest_daytime_tide_per_month.csv",
+                period_suffix,
+            ),
         )
 
         print("Plotting average lowest tide each month...")
-        plot_monthly_avg_lowest_daytime_tide(monthly_avg_lowest)
+        plot_monthly_avg_lowest_daytime_tide(
+            monthly_avg_lowest,
+            output_filename=append_period_to_filename(
+                OUT_PLOTS_DIR / "average_lowest_daytime_tide_per_month.png",
+                period_suffix,
+            ),
+        )
 
         # Calculate and Plot Average Lowest Tide Each Month per Year
         print("Calculating and plotting average lowest tide each month per year...")
         monthly_avg_lowest_yearly = calculate_monthly_avg_lowest_day_tide_by_year(
-            low_tides_df
+            low_tides_df,
+            output_filename=append_period_to_filename(
+                DATA_PROCESSED_DIR / "monthly_avg_lowest_tide_by_year.csv",
+                period_suffix,
+            ),
         )
-        plot_monthly_avg_lowest_tide_by_year(monthly_avg_lowest_yearly)
+        plot_monthly_avg_lowest_tide_by_year(
+            monthly_avg_lowest_yearly,
+            output_filename=append_period_to_filename(
+                OUT_PLOTS_DIR / "average_lowest_day_tide_by_year.png",
+                period_suffix,
+            ),
+        )
 
         # Calculate and export average count of tides below TIDEPOOL_TIDE during daytime
         average_monthly_counts_daytime = (
-            calculate_monthly_avg_count_below_tidepool_tide_daytime(low_tides_df)
+            calculate_monthly_avg_count_below_tidepool_tide_daytime(
+                low_tides_df,
+                output_filename=append_period_to_filename(
+                    DATA_PROCESSED_DIR / "monthly_avg_count_below_tidepool_daytime.csv",
+                    period_suffix,
+                ),
+            )
         )
 
         # Plot the histogram
@@ -667,6 +724,10 @@ def run_analysis(tidal_df, start_year, end_year):
             title=(
                 "Average Monthly Count of Tidepool Tides During Daytime "
                 f"({start_year} to {end_year})"
+            ),
+            output_filename=append_period_to_filename(
+                OUT_PLOTS_DIR / "average_count_below_tidepool_tide_daytime_histogram.png",
+                period_suffix,
             ),
         )
     except pd.errors.ParserError:
