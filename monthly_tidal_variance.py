@@ -71,16 +71,16 @@ def fetch_tidal_data(station_id, start_date, end_date, product="predictions"):
     }
 
     if product == "water_level":
-        if API_TOKEN:
-            if API_TOKEN == "YOUR_NOAA_API_TOKEN":
-                print("Warning: API_TOKEN not defined. Should be set in api_token.py. ",
-                "Cannot fetch 'water_level' data.")
-                return pd.DataFrame()  # Return an empty DataFrame or handle as needed
-            else:
-                params["token"] = API_TOKEN  # Use the imported token
-        else:
+        if not API_TOKEN:
             print("Error: API_TOKEN is not available. Cannot fetch 'water_level' data.")
             return pd.DataFrame()  # Return an empty DataFrame or handle as needed
+        if API_TOKEN == "YOUR_NOAA_API_TOKEN":
+            print(
+                "Warning: API_TOKEN not defined. Should be set in api_token.py. "
+                "Cannot fetch 'water_level' data."
+            )
+            return pd.DataFrame()  # Return an empty DataFrame or handle as needed
+        params["token"] = API_TOKEN  # Use the imported token
 
     try:
         response = requests.get(NOAA_API_URL, params=params, timeout=15)
@@ -304,10 +304,10 @@ def plot_monthly_avg_lowest_tide_by_year(
         title (str): Title of the plot.
     """
     plt.figure(figsize=(12, 8))
-    
+
     # Get unique years
     years = monthly_avg_lowest_yearly['year'].unique()
-    
+
     for year in years:
         yearly_data = monthly_avg_lowest_yearly[
             monthly_avg_lowest_yearly["year"] == year
@@ -318,7 +318,7 @@ def plot_monthly_avg_lowest_tide_by_year(
             marker="o",
             label=str(year),
         )
-    
+
     plt.title(title)
     plt.xlabel("Month")
     plt.ylabel("Average Lowest Tide Level (ft)")
@@ -336,12 +336,12 @@ def calculate_monthly_avg_count_below_tidepool_tide_daytime(
     """
     Calculate the average count of tides below TIDEPOOL_TIDE during daytime for
     each month and export to a CSV file.
-    
+
     Args:
         df (pd.DataFrame): DataFrame containing tidal data with 't' (datetime)
         and 'v' (tide level) columns.
         output_filename (str): Name of the output CSV file.
-    
+
     Returns:
         pd.DataFrame: DataFrame with 'month',
         'average_count_below_tidepool_tide_daytime', and 'month_name' columns.
@@ -350,20 +350,20 @@ def calculate_monthly_avg_count_below_tidepool_tide_daytime(
     df_local = df.copy()
     # Ensure the datetime column is in datetime format
     df_local["t"] = pd.to_datetime(df_local["t"])
-    
+
     # Extract month, year, and hour from datetime
     df_local["month"] = df_local["t"].dt.month
     df_local["year"] = df_local["t"].dt.year
     df_local["hour"] = df_local["t"].dt.hour
-    
+
     # Filter tides below TIDEPOOL_TIDE
     df_below = df_local[df_local["v"] < TIDEPOOL_TIDE].copy()
-    
+
     # Further filter to include only tides during daytime hours
     df_below_daytime = df_below[
         (df_below["hour"] >= DAY_START_HOUR) & (df_below["hour"] < DAY_END_HOUR)
     ]
-    
+
     # Count the number of tides below TIDEPOOL_TIDE during daytime per month per year
     monthly_counts_daytime = (
         df_below_daytime
@@ -371,7 +371,7 @@ def calculate_monthly_avg_count_below_tidepool_tide_daytime(
         .size()
         .reset_index(name="count_below_tidepool_tide_daytime")
     )
-    
+
     # Calculate the average count per month across all years
     average_monthly_counts_daytime = (
         monthly_counts_daytime
@@ -387,12 +387,12 @@ def calculate_monthly_avg_count_below_tidepool_tide_daytime(
     average_monthly_counts_daytime = all_months.merge(
         average_monthly_counts_daytime, on="month", how="left"
     ).fillna(0)
-    
+
     # Add month names for readability
     average_monthly_counts_daytime["month_name"] = average_monthly_counts_daytime["month"].apply(
         lambda x: datetime(1900, x, 1).strftime("%B")
     )
-    
+
     # Rename columns for clarity
     average_monthly_counts_daytime.rename(
         columns={
@@ -401,13 +401,13 @@ def calculate_monthly_avg_count_below_tidepool_tide_daytime(
         },
         inplace=True,
     )
-    
+
     # Export to CSV
     export_to_csv(
         average_monthly_counts_daytime,
         output_filename,
     )
-    
+
     return average_monthly_counts_daytime
 
 def plot_monthly_avg_count_below_tidepool_daytime_histogram(
@@ -416,13 +416,13 @@ def plot_monthly_avg_count_below_tidepool_daytime_histogram(
 ):
     """
     Plot a histogram of the average monthly count of tides below TIDEPOOL_TIDE during daytime.
-    
+
     Args:
         average_monthly_counts_daytime (pd.DataFrame): DataFrame containing
         average monthly counts of tides below TIDEPOOL_TIDE during daytime.
         title (str): Title of the histogram.
     """
-    
+
     # Plot the histogram
     plt.figure(figsize=(10, 6))
     plt.bar(
