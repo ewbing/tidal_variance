@@ -642,7 +642,9 @@ def run_analysis(tidal_df, start_year, end_year):
         monthly_avg_lowest = calculate_monthly_avg_lowest_daytime_tide(low_tides_df)
 
         print("Exporting average lowest tide data to CSV...")
-        export_to_csv(monthly_avg_lowest, DATA_PROCESSED_DIR / "average_lowest_daytime_tide_per_month.csv")
+        export_to_csv(
+            monthly_avg_lowest, DATA_PROCESSED_DIR / "average_lowest_daytime_tide_per_month.csv"
+        )
 
         print("Plotting average lowest tide each month...")
         plot_monthly_avg_lowest_daytime_tide(monthly_avg_lowest)
