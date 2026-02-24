@@ -61,7 +61,7 @@ def load_tidal_data(args):
     tidal_df = pd.DataFrame()
     if args.source == "csv":
         try:
-            project_root = Path(__file__).resolve().parent.parent
+            project_root = Path(__file__).resolve().parents[2]
             resolved_csv_path = resolve_input_path(args.csv_path, base_dir=project_root)
             if resolved_csv_path is None:
                 print(f"Error: The file {args.csv_path} does not exist.")

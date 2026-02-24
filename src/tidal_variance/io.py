@@ -6,7 +6,13 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from .config import DATA_PROCESSED_DIR, DATA_RAW_DIR, NOAA_API_URL, OUT_PLOTS_DIR
+from .config import (
+    DATA_PROCESSED_DIR,
+    DATA_RAW_DIR,
+    NOAA_API_URL,
+    OUT_PLOTS_DIR,
+    PROJECT_ROOT,
+)
 
 try:
     from api_token import API_TOKEN
@@ -27,7 +33,7 @@ def ensure_api_token_file():
     if API_TOKEN is not None:
         return
 
-    token_file = Path("api_token.py")
+    token_file = PROJECT_ROOT / "api_token.py"
     if not token_file.exists():
         token_file.write_text(
             "# api_token.py\n"

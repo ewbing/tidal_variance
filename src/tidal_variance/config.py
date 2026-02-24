@@ -9,6 +9,8 @@ DAY_START_HOUR = 10
 DAY_END_HOUR = 16
 TIDEPOOL_TIDE = 0.1
 
-DATA_RAW_DIR = Path("data/raw")
-DATA_PROCESSED_DIR = Path("data/processed")
-OUT_PLOTS_DIR = Path("out/plots")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+DATA_RAW_DIR = PROJECT_ROOT / "data/raw"
+DATA_PROCESSED_DIR = PROJECT_ROOT / "data/processed"
+OUT_PLOTS_DIR = PROJECT_ROOT / "out/plots"
