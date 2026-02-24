@@ -1,15 +1,15 @@
-"""Backwards-compatible facade for tidal variance analysis modules."""
-# pylint: disable=wrong-import-position
+"""Tidal variance analysis package."""
 
-import sys
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parent
-SRC_PATH = PROJECT_ROOT / "src"
-if str(SRC_PATH) not in sys.path:
-    sys.path.insert(0, str(SRC_PATH))
-
-from tidal_variance import (
+from .analysis import (
+    analyze_daytime_monthly_average,
+    analyze_monthly_average,
+    calculate_monthly_avg_count_below_tidepool_tide_daytime,
+    calculate_monthly_avg_lowest_day_tide_by_year,
+    calculate_monthly_avg_lowest_daytime_tide,
+    identify_low_tides,
+)
+from .cli import load_tidal_data, main, parse_args, run_analysis
+from .config import (
     DATA_PROCESSED_DIR,
     DATA_RAW_DIR,
     DAY_END_HOUR,
@@ -18,27 +18,21 @@ from tidal_variance import (
     OUT_PLOTS_DIR,
     STATION_ID,
     TIDEPOOL_TIDE,
-    analyze_daytime_monthly_average,
-    analyze_monthly_average,
+)
+from .io import (
     append_period_to_filename,
     build_period_suffix,
-    calculate_monthly_avg_count_below_tidepool_tide_daytime,
-    calculate_monthly_avg_lowest_day_tide_by_year,
-    calculate_monthly_avg_lowest_daytime_tide,
     ensure_api_token_file,
     ensure_project_directories,
     export_to_csv,
     fetch_tidal_data,
-    identify_low_tides,
-    load_tidal_data,
-    main,
-    parse_args,
+    resolve_input_path,
+)
+from .plotting import (
     plot_monthly_average,
     plot_monthly_avg_count_below_tidepool_daytime_histogram,
     plot_monthly_avg_lowest_daytime_tide,
     plot_monthly_avg_lowest_tide_by_year,
-    resolve_input_path,
-    run_analysis,
 )
 
 __all__ = [
@@ -72,6 +66,3 @@ __all__ = [
     "run_analysis",
     "main",
 ]
-
-if __name__ == "__main__":
-    main()

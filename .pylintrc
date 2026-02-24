@@ -1,5 +1,6 @@
 [MASTER]
 ignore=.venv,__pycache__,outcomp
+init-hook='import sys; from pathlib import Path; sys.path.insert(0, str((Path.cwd() / "src").resolve()))'
 
 [MESSAGES CONTROL]
 disable=
