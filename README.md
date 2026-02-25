@@ -51,8 +51,9 @@ pip install -r requirements.txt
 
 >`monthly_tidal_variance.py [-h] [--source {api,csv}] [--csv_path CSV_PATH] [--api_raw_output API_RAW_OUTPUT]`
 
-### Options:
-```
+### Options
+
+```text
   -h, --help            show this help message and exit
   --source {api,csv}    Data source: 'api' to fetch from API, 'csv' to read from detailed CSV file. (default: csv)
   --csv_path CSV_PATH   Path to the detailed low tide CSV file (used only when --source csv). (default:
@@ -118,7 +119,6 @@ Notes:
 - `DATA_RAW_DIR`: `data/raw/`
 - `DATA_PROCESSED_DIR`: `data/processed/`
 - `OUT_PLOTS_DIR`: `out/plots/`
-
 
 ## Outputs
 
