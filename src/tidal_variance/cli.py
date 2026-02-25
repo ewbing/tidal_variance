@@ -14,7 +14,14 @@ from .analysis import (
     calculate_monthly_avg_lowest_daytime_tide,
     identify_low_tides,
 )
-from .config import DATA_PROCESSED_DIR, DATA_RAW_DIR, OUT_PLOTS_DIR, STATION_ID
+from .config import (
+    DATA_PROCESSED_DIR,
+    DATA_RAW_DIR,
+    DEFAULT_END_YEAR,
+    DEFAULT_START_YEAR,
+    OUT_PLOTS_DIR,
+    STATION_ID,
+)
 from .io import (
     append_period_to_filename,
     build_period_suffix,
@@ -34,7 +41,10 @@ from .plotting import (
 
 def parse_args():
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="Process tidal data.")
+    parser = argparse.ArgumentParser(
+        description="Process tidal data.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "--source",
         choices=["api", "csv"],
@@ -45,7 +55,16 @@ def parse_args():
         "--csv_path",
         type=str,
         default=str(DATA_RAW_DIR / "raw_tide_data.csv"),
-        help="Path to the detailed low tide CSV file.",
+        help="Path to the detailed low tide CSV file (used only when --source csv).",
+    )
+    parser.add_argument(
+        "--api_raw_output",
+        type=str,
+        default="raw_tide_data.csv",
+        help=(
+            "Base filename or path for raw API export. Year suffix is appended "
+            "automatically (for example, raw_tide_data_2019_2024.csv)."
+        ),
     )
     return parser.parse_args()
 
@@ -53,8 +72,8 @@ def parse_args():
 def load_tidal_data(args):
     """Load tide data from CSV or NOAA API and return period metadata."""
     ensure_project_directories()
-    start_year = 2019
-    end_year = 2024
+    start_year = DEFAULT_START_YEAR
+    end_year = DEFAULT_END_YEAR
     start_date = datetime(start_year, 1, 1)
     end_date = datetime(end_year, 12, 31)
 
@@ -97,10 +116,19 @@ def load_tidal_data(args):
             )
 
             print("Fetching tidal data...")
+            # TODO: Add a --product CLI argument and pass it through here instead of hardcoding.
             tidal_df = fetch_tidal_data(STATION_ID, start_date, end_date, product="predictions")
 
             print("Exporting detailed raw tide data to CSV...")
-            raw_output = DATA_RAW_DIR / f"raw_tide_data_{start_year}_{end_year}.csv"
+            raw_output = Path(args.api_raw_output).expanduser()
+            if not raw_output.suffix:
+                raw_output = raw_output.with_suffix(".csv")
+            if not raw_output.is_absolute():
+                raw_output = DATA_RAW_DIR / raw_output
+            raw_output = append_period_to_filename(
+                raw_output,
+                build_period_suffix(start_year, end_year),
+            )
             export_to_csv(tidal_df, raw_output)
 
         except requests.exceptions.RequestException as exc:

@@ -1,12 +1,12 @@
 # Tidal Variance
 
-Analyze NOAA tide predictions to identify seasonal patterns for good tide pooling
-Focus on low-tide patterns during the day, generates monthly summaries, and export charts/CSVs for exploration
+Analyze NOAA tide predictions to identify seasonal patterns for good tide pooling.
+Focus on daytime low-tide patterns, generate monthly summaries, and export charts/CSVs for exploration.
 
 ## Features
 
 - Load tide data from `CSV` files (default)
-- Fetch tide data from NOAA API (`predictions` or `water_level` based on token status)
+- Fetch tide data from NOAA API (`predictions` in current CLI flow)
 - Identify lower-low tides from low-tide points
 - Compute monthly aggregates, including daytime and threshold-based metrics
 - Export processed datasets to `data/processed/`
@@ -49,6 +49,21 @@ pip install -r requirements.txt
 
 ## Usage
 
+>`monthly_tidal_variance.py [-h] [--source {api,csv}] [--csv_path CSV_PATH] [--api_raw_output API_RAW_OUTPUT]`
+
+### Options:
+```
+  -h, --help            show this help message and exit
+  --source {api,csv}    Data source: 'api' to fetch from API, 'csv' to read from detailed CSV file. (default: csv)
+  --csv_path CSV_PATH   Path to the detailed low tide CSV file (used only when --source csv). (default:
+                        data/raw/raw_tide_data.csv)
+  --api_raw_output API_RAW_OUTPUT
+                        Base filename or path for raw API export. Year suffix is appended automatically (for example,
+                        raw_tide_data_2019_2024.csv). (default: raw_tide_data.csv)
+```
+
+## Examples
+
 ### Run from CSV (default)
 
 ```bash
@@ -63,6 +78,16 @@ python monthly_tidal_variance.py \
 python monthly_tidal_variance.py --source api
 ```
 
+### Run from NOAA API with explicit raw output name
+
+```bash
+python monthly_tidal_variance.py \
+  --source api \
+  --api_raw_output data/raw/raw_tide_data.csv
+```
+
+This produces `data/raw/raw_tide_data_2019_2024.csv` with the default year range.
+
 ### NOAA token setup (optional, recommended)
 
 The generic `api_token.py` file contains:
@@ -71,7 +96,7 @@ The generic `api_token.py` file contains:
 API_TOKEN = "YOUR_NOAA_API_TOKEN"  # Replace with your actual token
 ```
 
-Replace the placeholder with your NOAA token to enable higher-throughput NOAA requests and to fetch actual tide data (`water_level`) instead of only predictions.
+Replace the placeholder with your NOAA token to enable higher-throughput NOAA requests. The current CLI path fetches `predictions`.
 
 Do not check real tokens into git. `api_token.py` is already listed in `.gitignore`.
 
@@ -88,19 +113,12 @@ Notes:
 - `DAY_START_HOUR`: `10`
 - `DAY_END_HOUR`: `16`
 - `TIDEPOOL_TIDE`: `0.1`
+- `DEFAULT_START_YEAR`: `2019`
+- `DEFAULT_END_YEAR`: `2024`
 - `DATA_RAW_DIR`: `data/raw/`
 - `DATA_PROCESSED_DIR`: `data/processed/`
 - `OUT_PLOTS_DIR`: `out/plots/`
 
-### `API_MODE` defaults (`src/tidal_variance/cli.py`)
-
-- `--source` default: `csv`
-- `--csv_path` default: `data/raw/raw_tide_data.csv`
-- API date range defaults:
-- `start_year = 2019` (`2019-01-01`)
-- `end_year = 2024` (`2024-12-31`)
-- API product in current code path: `predictions`
-- Note: NOAA API generally limits requests to about 5 years per call.
 
 ## Outputs
 

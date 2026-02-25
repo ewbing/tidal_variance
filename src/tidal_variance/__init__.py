@@ -12,6 +12,8 @@ from .cli import load_tidal_data, main, parse_args, run_analysis
 from .config import (
     DATA_PROCESSED_DIR,
     DATA_RAW_DIR,
+    DEFAULT_END_YEAR,
+    DEFAULT_START_YEAR,
     DAY_END_HOUR,
     DAY_START_HOUR,
     NOAA_API_URL,
@@ -40,6 +42,8 @@ __all__ = [
     "STATION_ID",
     "DAY_START_HOUR",
     "DAY_END_HOUR",
+    "DEFAULT_START_YEAR",
+    "DEFAULT_END_YEAR",
     "TIDEPOOL_TIDE",
     "DATA_RAW_DIR",
     "DATA_PROCESSED_DIR",
