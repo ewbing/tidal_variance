@@ -25,7 +25,7 @@ from .config import (
 from .io import (
     append_period_to_filename,
     build_period_suffix,
-    ensure_api_token_file,
+    ensure_api_token,
     ensure_project_directories,
     export_to_csv,
     fetch_tidal_data,
@@ -108,7 +108,7 @@ def load_tidal_data(args):
             print(f"Error: Could not parse the CSV file {args.csv_path}.")
             return None, start_year, end_year
     else:
-        ensure_api_token_file()
+        ensure_api_token()
         try:
             print(
                 f"Analysis period: {start_date.strftime('%Y-%m-%d')} to "

@@ -91,15 +91,13 @@ This produces `data/raw/raw_tide_data_2019_2024.csv` with the default year range
 
 ### NOAA token setup (optional, recommended)
 
-The generic `api_token.py` file contains:
+Set the `NOAA_API_TOKEN` environment variable to enable higher-throughput NOAA requests:
 
-```python
-API_TOKEN = "YOUR_NOAA_API_TOKEN"  # Replace with your actual token
+```bash
+export NOAA_API_TOKEN=your_actual_token
 ```
 
-Replace the placeholder with your NOAA token to enable higher-throughput NOAA requests. The current CLI path fetches `predictions`.
-
-Do not check real tokens into git. `api_token.py` is already listed in `.gitignore`.
+The current CLI path fetches `predictions`, which does not require a token. A token is only needed for `water_level` product requests.
 
 Notes:
 

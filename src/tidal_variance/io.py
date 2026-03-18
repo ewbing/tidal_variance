@@ -1,5 +1,6 @@
 """I/O helpers for tidal variance analysis."""
 
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -11,14 +12,9 @@ from .config import (
     DATA_RAW_DIR,
     NOAA_API_URL,
     OUT_PLOTS_DIR,
-    PROJECT_ROOT,
 )
 
-try:
-    from api_token import API_TOKEN
-except (ImportError, AttributeError):
-    API_TOKEN = None
-    print("Warning: API_TOKEN not found. 'water_level' data will not be available.")
+API_TOKEN = os.environ.get("NOAA_API_TOKEN")
 
 
 def ensure_project_directories():
@@ -28,22 +24,14 @@ def ensure_project_directories():
     OUT_PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def ensure_api_token_file():
-    """Create a token template file if API token is not configured."""
-    if API_TOKEN is not None:
-        return
-
-    token_file = PROJECT_ROOT / "api_token.py"
-    if not token_file.exists():
-        token_file.write_text(
-            "# api_token.py\n"
-            'API_TOKEN = "YOUR_NOAA_API_TOKEN"  # Replace with your actual token\n',
-            encoding="utf-8",
+def ensure_api_token():
+    """Warn if NOAA_API_TOKEN environment variable is not set."""
+    if not API_TOKEN:
+        print(
+            "Warning: NOAA_API_TOKEN environment variable is not set. "
+            "'water_level' data will not be available. "
+            "Set it with: export NOAA_API_TOKEN=your_token"
         )
-        print("Created 'api_token.py'. Please add your API_TOKEN to this file.")
-        return
-
-    print("'api_token.py' exists but API_TOKEN is not defined. Please add your API_TOKEN.")
 
 
 def fetch_tidal_data(station_id, start_date, end_date, product="predictions"):
@@ -63,11 +51,8 @@ def fetch_tidal_data(station_id, start_date, end_date, product="predictions"):
 
     if product == "water_level":
         if not API_TOKEN:
-            print("Error: API_TOKEN is not available. Cannot fetch 'water_level' data.")
-            return pd.DataFrame()
-        if API_TOKEN == "YOUR_NOAA_API_TOKEN":
             print(
-                "Warning: API_TOKEN not defined. Should be set in api_token.py. "
+                "Error: NOAA_API_TOKEN environment variable is not set. "
                 "Cannot fetch 'water_level' data."
             )
             return pd.DataFrame()

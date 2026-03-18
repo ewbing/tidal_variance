@@ -24,7 +24,7 @@ from .config import (
 from .io import (
     append_period_to_filename,
     build_period_suffix,
-    ensure_api_token_file,
+    ensure_api_token,
     ensure_project_directories,
     export_to_csv,
     fetch_tidal_data,
@@ -49,7 +49,7 @@ __all__ = [
     "DATA_PROCESSED_DIR",
     "OUT_PLOTS_DIR",
     "ensure_project_directories",
-    "ensure_api_token_file",
+    "ensure_api_token",
     "fetch_tidal_data",
     "identify_low_tides",
     "analyze_monthly_average",

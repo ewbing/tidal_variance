@@ -77,4 +77,8 @@ CLI args → parse_args() → load_tidal_data()
 
 ### NOAA API Token
 
-Place token in `api_token.py` at project root (git-ignored). The `ensure_api_token_file()` function in `io.py` creates a template if missing.
+Set the `NOAA_API_TOKEN` environment variable before running with `--source api`:
+```bash
+export NOAA_API_TOKEN=your_actual_token
+```
+The `ensure_api_token()` function in `io.py` warns if the variable is unset. A token is only required for `water_level` product requests; the default `predictions` product does not need one.
